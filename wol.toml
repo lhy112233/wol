@@ -1,0 +1,12 @@
+default_target = "desktop"
+
+[network]
+port = 9
+send_count = 3
+interval_ms = 100
+broadcast = "255.255.255.255"
+
+[targets.desktop]
+mac = "AA:BB:CC:DD:EE:FF"
+ip = "192.168.1.20"
+broadcast = "192.168.1.255"
