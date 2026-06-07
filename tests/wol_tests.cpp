@@ -121,6 +121,14 @@ TEST(ConfigTest, LoadsValidatesSelectsAndRoundtripsToml) {
     EXPECT_EQ(*roundtrip.targets.at("desktop").ip, "192.168.1.20");
 }
 
+TEST(ConfigTest, DefaultsToDebianWakeonlanSingleSendWireBehavior) {
+    const wol::NetworkConfig network;
+
+    EXPECT_EQ(network.broadcast, "255.255.255.255");
+    EXPECT_EQ(network.port, 9);
+    EXPECT_EQ(network.send_count, 1);
+}
+
 TEST(ConfigTest, RejectsInvalidConfigWithUsefulContext) {
     auto config = wol::Config{};
     config.default_target = "missing";

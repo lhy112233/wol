@@ -4,6 +4,10 @@
 for humans and automation agents: normal commands use readable text, and
 supported commands can emit stable JSON with `--json`.
 
+Its default wire behavior matches Debian `wakeonlan`: send one Wake-on-LAN magic
+packet over UDP broadcast to `255.255.255.255:9`. Target-specific broadcast
+addresses are still supported, matching the same idea as Debian `wakeonlan -i`.
+
 The release archive contains only two runtime files:
 
 - `wol`
@@ -124,7 +128,7 @@ default_target = "desktop"
 
 [network]
 port = 9
-send_count = 3
+send_count = 1
 interval_ms = 100
 broadcast = "255.255.255.255"
 

@@ -4,6 +4,10 @@
 
 `wol` is a static Linux x86_64 Wake-on-LAN CLI. It supports human-friendly text output and stable JSON output for agents/scripts.
 
+Default wake behavior intentionally matches Debian `wakeonlan` at the wire
+level: one UDP magic packet to `255.255.255.255:9`, unless TOML overrides the
+broadcast, port, or explicit `send_count`.
+
 ## Most Important Commands
 
 ```bash

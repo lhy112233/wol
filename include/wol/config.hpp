@@ -12,7 +12,7 @@ namespace wol {
 struct NetworkConfig {
     std::string broadcast = "255.255.255.255";
     int port = 9;
-    int send_count = 3;
+    int send_count = 1;
     int interval_ms = 100;
 };
 

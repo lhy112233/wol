@@ -2,7 +2,7 @@ default_target = "desktop"
 
 [network]
 port = 9
-send_count = 3
+send_count = 1
 interval_ms = 100
 broadcast = "255.255.255.255"
 

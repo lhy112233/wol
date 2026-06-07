@@ -15,6 +15,11 @@ std::string version_text() {
 std::string help_text() {
     return R"(wol - dependency-free Wake-on-LAN for Linux
 
+Default wake behavior follows Debian wakeonlan wire semantics: one UDP magic
+packet to 255.255.255.255:9 with SO_BROADCAST enabled. Named TOML targets,
+JSON output, and learned subnet broadcasts are project conveniences around that
+same packet format.
+
 Usage:
   wol [options] [target]
   wol learn [options] <name> <ipv4>
@@ -75,7 +80,7 @@ TOML example:
 
   [network]
   port = 9
-  send_count = 3
+  send_count = 1
   interval_ms = 100
   broadcast = "255.255.255.255"
 
@@ -99,6 +104,8 @@ Troubleshooting:
     target and use --dry-run to verify the selected MAC, broadcast, and port.
   - This release is intended to be fully static: it should not need shared
     runtime libraries on Debian/Ubuntu or Fedora-family x86_64 systems.
+  - By default wol sends one packet, matching Debian wakeonlan. Set send_count
+    above 1 only if you explicitly want repeated sends.
 )";
 }
 

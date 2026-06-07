@@ -19,6 +19,9 @@ endfunction()
 run_and_expect("dry-run json" 0 "\"action\":\"dry-run\""
     "${WOL_BINARY}" --config "${SAMPLE_CONFIG}" --dry-run --json desktop)
 
+run_and_expect("dry-run json single send" 0 "\"send_count\":1"
+    "${WOL_BINARY}" --config "${SAMPLE_CONFIG}" --dry-run --json desktop)
+
 run_and_expect("list json" 0 "\"targets\""
     "${WOL_BINARY}" --config "${SAMPLE_CONFIG}" --list --json)
 
