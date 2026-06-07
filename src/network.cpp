@@ -15,18 +15,23 @@ namespace wol {
 namespace {
 
 class Socket {
-public:
+  public:
     explicit Socket(int fd) : fd_(fd) {}
     Socket(const Socket&) = delete;
     Socket& operator=(const Socket&) = delete;
+    Socket(Socket&&) = delete;
+    Socket& operator=(Socket&&) = delete;
     ~Socket() {
         if (fd_ >= 0) {
             close(fd_);
         }
     }
-    int get() const { return fd_; }
+    [[nodiscard]]
+    int get() const {
+        return fd_;
+    }
 
-private:
+  private:
     int fd_ = -1;
 };
 
@@ -59,12 +64,8 @@ void send_magic_packet(const MacAddress& mac, const NetworkConfig& network) {
 
     const auto destination = sockaddr_for(broadcast, network.port);
     for (int i = 0; i < network.send_count; ++i) {
-        const auto sent = sendto(sock.get(),
-            packet.data(),
-            packet.size(),
-            0,
-            reinterpret_cast<const sockaddr*>(&destination),
-            sizeof(destination));
+        const auto sent = sendto(sock.get(), packet.data(), packet.size(), 0,
+                                 reinterpret_cast<const sockaddr*>(&destination), sizeof(destination));
         if (sent < 0 || static_cast<std::size_t>(sent) != packet.size()) {
             throw std::runtime_error(errno_message("sendto failed"));
         }
@@ -81,7 +82,8 @@ void trigger_arp_resolution(const Ipv4Address& ip) {
     }
     const std::uint8_t byte = 0;
     const auto destination = sockaddr_for(ip, 9);
-    (void)sendto(sock.get(), &byte, sizeof(byte), 0, reinterpret_cast<const sockaddr*>(&destination), sizeof(destination));
+    (void)sendto(sock.get(), &byte, sizeof(byte), 0, reinterpret_cast<const sockaddr*>(&destination),
+                 sizeof(destination));
 }
 
 } // namespace wol

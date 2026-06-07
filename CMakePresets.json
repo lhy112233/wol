@@ -13,6 +13,7 @@
       "binaryDir": "${sourceDir}/build/dev",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "WOL_BUILD_TESTS": "ON",
         "WOL_STATIC_LINK": "OFF"
       }
@@ -24,6 +25,7 @@
       "binaryDir": "${sourceDir}/build/release-static",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "WOL_BUILD_TESTS": "ON",
         "WOL_STATIC_LINK": "ON"
       }
@@ -44,6 +46,21 @@
     {
       "name": "dev",
       "configurePreset": "dev"
+    },
+    {
+      "name": "format-check",
+      "configurePreset": "dev",
+      "targets": ["format-check"]
+    },
+    {
+      "name": "format",
+      "configurePreset": "dev",
+      "targets": ["format"]
+    },
+    {
+      "name": "tidy",
+      "configurePreset": "dev",
+      "targets": ["tidy"]
     },
     {
       "name": "release-static",

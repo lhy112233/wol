@@ -7,8 +7,11 @@
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <initializer_list>
 #include <optional>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -25,23 +28,44 @@ void write_text(const std::filesystem::path& path, const std::string& text) {
 }
 
 std::string sample_config_text() {
-    return
-        "default_target = \"desktop\"\n"
-        "\n"
-        "[network]\n"
-        "port = 7\n"
-        "send_count = 2\n"
-        "interval_ms = 50\n"
-        "broadcast = \"192.168.1.255\"\n"
-        "\n"
-        "[targets.desktop]\n"
-        "mac = \"AA:BB:CC:DD:EE:FF\"\n"
-        "ip = \"192.168.1.20\"\n"
-        "\n"
-        "[targets.nas]\n"
-        "mac = \"01-23-45-67-89-ab\"\n"
-        "broadcast = \"192.168.1.255\"\n"
-        "port = 9\n";
+    return "default_target = \"desktop\"\n"
+           "\n"
+           "[network]\n"
+           "port = 7\n"
+           "send_count = 2\n"
+           "interval_ms = 50\n"
+           "broadcast = \"192.168.1.255\"\n"
+           "\n"
+           "[targets.desktop]\n"
+           "mac = \"AA:BB:CC:DD:EE:FF\"\n"
+           "ip = \"192.168.1.20\"\n"
+           "\n"
+           "[targets.nas]\n"
+           "mac = \"01-23-45-67-89-ab\"\n"
+           "broadcast = \"192.168.1.255\"\n"
+           "port = 9\n";
+}
+
+wol::CliOptions parse_test_cli(std::initializer_list<std::string_view> args) {
+    std::vector<std::string> storage;
+    storage.reserve(args.size());
+    std::vector<char*> argv;
+    argv.reserve(args.size());
+
+    for (const auto arg : args) {
+        storage.emplace_back(arg);
+        argv.push_back(storage.back().data());
+    }
+
+    return wol::parse_cli(static_cast<int>(argv.size()), argv.data());
+}
+
+template <typename T>
+const T& require_optional(const std::optional<T>& value) {
+    if (!value.has_value()) {
+        throw std::runtime_error("expected optional value");
+    }
+    return value.value();
 }
 
 } // namespace
@@ -77,8 +101,7 @@ TEST(Ipv4AddressTest, ComputesBroadcastForMatchingInterface) {
 
     const auto broadcast = wol::broadcast_for_ip(interfaces, wol::parse_ipv4("192.168.1.20"));
 
-    ASSERT_TRUE(broadcast.has_value());
-    EXPECT_EQ(wol::format_ipv4(*broadcast), "192.168.1.255");
+    EXPECT_EQ(wol::format_ipv4(require_optional(broadcast)), "192.168.1.255");
 }
 
 TEST(MagicPacketTest, ContainsHeaderAndSixteenMacRepetitions) {
@@ -91,7 +114,7 @@ TEST(MagicPacketTest, ContainsHeaderAndSixteenMacRepetitions) {
     }
     for (int repeat = 0; repeat < 16; ++repeat) {
         for (int octet = 0; octet < 6; ++octet) {
-            EXPECT_EQ(packet[6 + repeat * 6 + octet], mac.bytes[static_cast<std::size_t>(octet)]);
+            EXPECT_EQ(packet[6 + (repeat * 6) + octet], mac.bytes[static_cast<std::size_t>(octet)]);
         }
     }
 }
@@ -117,8 +140,7 @@ TEST(ConfigTest, LoadsValidatesSelectsAndRoundtripsToml) {
     wol::save_config_file(config, saved);
     const auto roundtrip = wol::load_config_file(saved);
     EXPECT_NO_THROW(wol::validate_config(roundtrip));
-    ASSERT_TRUE(roundtrip.targets.at("desktop").ip.has_value());
-    EXPECT_EQ(*roundtrip.targets.at("desktop").ip, "192.168.1.20");
+    EXPECT_EQ(require_optional(roundtrip.targets.at("desktop").ip), "192.168.1.20");
 }
 
 TEST(ConfigTest, DefaultsToDebianWakeonlanSingleSendWireBehavior) {
@@ -138,56 +160,45 @@ TEST(ConfigTest, RejectsInvalidConfigWithUsefulContext) {
 }
 
 TEST(ArpLearnTest, ParsesArpTableRows) {
-    const std::string arp =
-        "IP address       HW type     Flags       HW address            Mask     Device\n"
-        "192.168.1.20     0x1         0x2         aa:bb:cc:dd:ee:ff     *        eth0\n";
+    const std::string arp = "IP address       HW type     Flags       HW address            Mask     Device\n"
+                            "192.168.1.20     0x1         0x2         aa:bb:cc:dd:ee:ff     *        eth0\n";
 
     const auto mac = wol::parse_arp_table_for_ip(arp, wol::parse_ipv4("192.168.1.20"));
 
-    ASSERT_TRUE(mac.has_value());
-    EXPECT_EQ(wol::format_mac(*mac), "AA:BB:CC:DD:EE:FF");
+    EXPECT_EQ(wol::format_mac(require_optional(mac)), "AA:BB:CC:DD:EE:FF");
     EXPECT_FALSE(wol::parse_arp_table_for_ip(arp, wol::parse_ipv4("192.168.1.21")).has_value());
 }
 
 TEST(CliParseTest, ParsesDefaultWakeNamedWakeAndDryRun) {
-    const char* argv1[] = {"wol"};
-    const auto wake_default = wol::parse_cli(1, const_cast<char**>(argv1));
+    const auto wake_default = parse_test_cli({"wol"});
     EXPECT_EQ(wake_default.command, wol::CommandKind::Wake);
     EXPECT_FALSE(wake_default.target_name.has_value());
 
-    const char* argv2[] = {"wol", "--dry-run", "--config", "/tmp/wol.toml", "nas"};
-    const auto dry_run = wol::parse_cli(5, const_cast<char**>(argv2));
+    const auto dry_run = parse_test_cli({"wol", "--dry-run", "--config", "/tmp/wol.toml", "nas"});
     EXPECT_TRUE(dry_run.dry_run);
     EXPECT_EQ(dry_run.config_path, std::filesystem::path("/tmp/wol.toml"));
-    ASSERT_TRUE(dry_run.target_name.has_value());
-    EXPECT_EQ(*dry_run.target_name, "nas");
+    EXPECT_EQ(require_optional(dry_run.target_name), "nas");
 }
 
 TEST(CliParseTest, ParsesAgentFriendlyCommands) {
-    const char* argv1[] = {"wol", "--list", "--json"};
-    const auto list = wol::parse_cli(3, const_cast<char**>(argv1));
+    const auto list = parse_test_cli({"wol", "--list", "--json"});
     EXPECT_EQ(list.command, wol::CommandKind::List);
     EXPECT_TRUE(list.json);
 
-    const char* argv2[] = {"wol", "--check-config", "--json"};
-    const auto check = wol::parse_cli(3, const_cast<char**>(argv2));
+    const auto check = parse_test_cli({"wol", "--check-config", "--json"});
     EXPECT_EQ(check.command, wol::CommandKind::CheckConfig);
     EXPECT_TRUE(check.json);
 
-    const char* argv3[] = {"wol", "--print-config-path"};
-    const auto print_path = wol::parse_cli(2, const_cast<char**>(argv3));
+    const auto print_path = parse_test_cli({"wol", "--print-config-path"});
     EXPECT_EQ(print_path.command, wol::CommandKind::PrintConfigPath);
 }
 
 TEST(CliParseTest, ParsesLearnCommand) {
-    const char* argv[] = {"wol", "learn", "desktop", "192.168.1.20"};
-    const auto learn = wol::parse_cli(4, const_cast<char**>(argv));
+    const auto learn = parse_test_cli({"wol", "learn", "desktop", "192.168.1.20"});
 
     EXPECT_EQ(learn.command, wol::CommandKind::Learn);
-    ASSERT_TRUE(learn.target_name.has_value());
-    ASSERT_TRUE(learn.learn_ip.has_value());
-    EXPECT_EQ(*learn.target_name, "desktop");
-    EXPECT_EQ(*learn.learn_ip, "192.168.1.20");
+    EXPECT_EQ(require_optional(learn.target_name), "desktop");
+    EXPECT_EQ(require_optional(learn.learn_ip), "192.168.1.20");
 }
 
 TEST(HelpTest, DocumentsHumansAndAgents) {

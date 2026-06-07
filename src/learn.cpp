@@ -36,9 +36,16 @@ std::vector<InterfaceInfo> local_ipv4_interfaces() {
     }
 
     struct Guard {
+        explicit Guard(ifaddrs* raw) : ptr(raw) {}
         ifaddrs* ptr;
-        ~Guard() { freeifaddrs(ptr); }
-    } guard{raw};
+        Guard(const Guard&) = delete;
+        Guard& operator=(const Guard&) = delete;
+        Guard(Guard&&) = delete;
+        Guard& operator=(Guard&&) = delete;
+        ~Guard() {
+            freeifaddrs(ptr);
+        }
+    } guard(raw);
 
     std::vector<InterfaceInfo> result;
     for (auto* item = raw; item != nullptr; item = item->ifa_next) {

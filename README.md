@@ -26,6 +26,19 @@ cmake --build --preset dev
 ctest --preset dev
 ```
 
+Style and static analysis:
+
+```bash
+cmake --build --preset format-check
+cmake --build --preset tidy
+```
+
+Apply formatting intentionally:
+
+```bash
+cmake --build --preset format
+```
+
 Build the fully static release:
 
 ```bash
@@ -64,7 +77,7 @@ sudo apt install cmake ninja-build g++ libc6-dev
 Fedora:
 
 ```bash
-sudo dnf install cmake ninja-build gcc-c++ glibc-static libstdc++-static gtest-devel binutils file tar gzip
+sudo dnf install cmake ninja-build gcc-c++ glibc-static libstdc++-static gtest-devel clang-tools-extra binutils file tar gzip
 ```
 
 Some distributions split static C++ runtime files into a separate package. If

@@ -51,9 +51,8 @@ bool valid_target_name(const std::string& name) {
     if (name.empty()) {
         return false;
     }
-    return std::all_of(name.begin(), name.end(), [](unsigned char ch) {
-        return std::isalnum(ch) || ch == '_' || ch == '-' || ch == '.';
-    });
+    return std::all_of(name.begin(), name.end(),
+                       [](unsigned char ch) { return std::isalnum(ch) || ch == '_' || ch == '-' || ch == '.'; });
 }
 
 std::string parse_string_value(const std::string& value, int line_number) {
@@ -138,7 +137,7 @@ Config load_config_file(const std::filesystem::path& path) {
             const auto table = line.substr(1, line.size() - 2);
             if (table == "network") {
                 section = {SectionKind::Network, {}};
-            } else if (table.rfind("targets.", 0) == 0) {
+            } else if (table.starts_with("targets.")) {
                 const auto name = table.substr(8);
                 if (!valid_target_name(name)) {
                     throw std::runtime_error("line " + std::to_string(line_number) + ": invalid target name");

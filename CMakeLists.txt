@@ -8,6 +8,91 @@ option(WOL_BUILD_TESTS "Build tests" ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(WOL_FORMAT_FILES
+    app/main.cpp
+    include/wol/cli.hpp
+    include/wol/config.hpp
+    include/wol/help.hpp
+    include/wol/learn.hpp
+    include/wol/network.hpp
+    include/wol/types.hpp
+    src/cli.cpp
+    src/config.cpp
+    src/help.cpp
+    src/learn.cpp
+    src/network.cpp
+    src/toml.cpp
+    src/types.cpp
+    tests/wol_tests.cpp
+)
+
+set(WOL_FORMAT_PATHS)
+foreach(file IN LISTS WOL_FORMAT_FILES)
+    list(APPEND WOL_FORMAT_PATHS "${CMAKE_SOURCE_DIR}/${file}")
+endforeach()
+
+set(WOL_TIDY_FILES
+    app/main.cpp
+    src/cli.cpp
+    src/config.cpp
+    src/help.cpp
+    src/learn.cpp
+    src/network.cpp
+    src/toml.cpp
+    src/types.cpp
+    tests/wol_tests.cpp
+)
+
+set(WOL_TIDY_PATHS)
+foreach(file IN LISTS WOL_TIDY_FILES)
+    list(APPEND WOL_TIDY_PATHS "${CMAKE_SOURCE_DIR}/${file}")
+endforeach()
+
+find_program(CLANG_FORMAT_EXE NAMES clang-format)
+if(CLANG_FORMAT_EXE)
+    add_custom_target(format-check
+        COMMAND ${CLANG_FORMAT_EXE} --dry-run --Werror ${WOL_FORMAT_PATHS}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Checking C++ formatting with clang-format"
+        VERBATIM
+    )
+    add_custom_target(format
+        COMMAND ${CLANG_FORMAT_EXE} -i ${WOL_FORMAT_PATHS}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Formatting C++ sources with clang-format"
+        VERBATIM
+    )
+else()
+    add_custom_target(format-check
+        COMMAND ${CMAKE_COMMAND} -E false
+        COMMENT "clang-format was not found"
+    )
+    add_custom_target(format
+        COMMAND ${CMAKE_COMMAND} -E false
+        COMMENT "clang-format was not found"
+    )
+endif()
+
+find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+if(CLANG_TIDY_EXE)
+    add_custom_target(tidy
+        COMMAND ${CLANG_TIDY_EXE}
+            -p=${CMAKE_BINARY_DIR}
+            --quiet
+            --warnings-as-errors=*
+            ${WOL_TIDY_PATHS}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running clang-tidy with C++ Core Guidelines checks"
+        VERBATIM
+    )
+else()
+    add_custom_target(tidy
+        COMMAND ${CMAKE_COMMAND} -E false
+        COMMENT "clang-tidy was not found"
+    )
+endif()
 
 if(WOL_STATIC_LINK)
     include(CheckCXXSourceCompiles)

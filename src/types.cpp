@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 
 namespace wol {
 
@@ -13,7 +14,7 @@ namespace {
 
 int hex_value(char c) {
     const auto ch = static_cast<unsigned char>(c);
-    if (std::isdigit(ch)) {
+    if (std::isdigit(ch) != 0) {
         return c - '0';
     }
     if (c >= 'a' && c <= 'f') {
@@ -49,7 +50,7 @@ MacAddress parse_mac(const std::string& text) {
             throw std::invalid_argument("compact MAC address must contain 12 hex digits");
         }
         for (std::size_t i = 0; i < 6; ++i) {
-            mac.bytes[i] = parse_octet_hex(text[i * 2], text[i * 2 + 1]);
+            mac.bytes[i] = parse_octet_hex(text[i * 2], text[(i * 2) + 1]);
         }
         return mac;
     }
@@ -97,18 +98,14 @@ Ipv4Address parse_ipv4(const std::string& text) {
 
 std::string format_ipv4(const Ipv4Address& ip) {
     std::ostringstream out;
-    out << static_cast<int>(ip.bytes[0]) << '.'
-        << static_cast<int>(ip.bytes[1]) << '.'
-        << static_cast<int>(ip.bytes[2]) << '.'
-        << static_cast<int>(ip.bytes[3]);
+    out << static_cast<int>(ip.bytes[0]) << '.' << static_cast<int>(ip.bytes[1]) << '.' << static_cast<int>(ip.bytes[2])
+        << '.' << static_cast<int>(ip.bytes[3]);
     return out.str();
 }
 
 std::uint32_t ipv4_to_host_u32(const Ipv4Address& ip) {
-    return (static_cast<std::uint32_t>(ip.bytes[0]) << 24U)
-        | (static_cast<std::uint32_t>(ip.bytes[1]) << 16U)
-        | (static_cast<std::uint32_t>(ip.bytes[2]) << 8U)
-        | static_cast<std::uint32_t>(ip.bytes[3]);
+    return (static_cast<std::uint32_t>(ip.bytes[0]) << 24U) | (static_cast<std::uint32_t>(ip.bytes[1]) << 16U) |
+           (static_cast<std::uint32_t>(ip.bytes[2]) << 8U) | static_cast<std::uint32_t>(ip.bytes[3]);
 }
 
 Ipv4Address ipv4_from_host_u32(std::uint32_t value) {

@@ -11,6 +11,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace wol {
@@ -18,12 +19,12 @@ namespace wol {
 namespace {
 
 bool is_option(const std::string& arg) {
-    return arg.rfind("-", 0) == 0;
+    return arg.starts_with('-');
 }
 
 bool json_requested(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "--json") {
+        if (std::string_view(argv[i]) == "--json") {
             return true;
         }
     }
@@ -83,8 +84,7 @@ std::string json_string(const std::string& value) {
 }
 
 void print_json_error(const std::string& kind, const std::string& message, int exit_code) {
-    std::cerr << "{\"ok\":false,\"error\":{\"kind\":" << json_string(kind)
-              << ",\"message\":" << json_string(message)
+    std::cerr << "{\"ok\":false,\"error\":{\"kind\":" << json_string(kind) << ",\"message\":" << json_string(message)
               << ",\"exit_code\":" << exit_code << "}}\n";
 }
 
@@ -94,12 +94,9 @@ std::string optional_json_string(const std::optional<std::string>& value) {
 
 std::string target_json(const std::string& name, const TargetConfig& target, bool is_default) {
     std::ostringstream out;
-    out << "{\"name\":" << json_string(name)
-        << ",\"default\":" << (is_default ? "true" : "false")
-        << ",\"mac\":" << json_string(target.mac)
-        << ",\"ip\":" << optional_json_string(target.ip)
-        << ",\"broadcast\":" << optional_json_string(target.broadcast)
-        << ",\"port\":";
+    out << "{\"name\":" << json_string(name) << ",\"default\":" << (is_default ? "true" : "false")
+        << ",\"mac\":" << json_string(target.mac) << ",\"ip\":" << optional_json_string(target.ip)
+        << ",\"broadcast\":" << optional_json_string(target.broadcast) << ",\"port\":";
     if (target.port) {
         out << *target.port;
     } else {
@@ -125,8 +122,9 @@ void print_target_line(const std::string& name, const TargetConfig& target, bool
 
 Config load_required_config(const std::filesystem::path& config_path) {
     if (!std::filesystem::exists(config_path)) {
-        throw std::runtime_error("config file not found: " + config_path.string()
-            + ". Create wol.toml beside the executable, pass --config <path>, or run 'wol learn <name> <ipv4>' to create a learned target.");
+        throw std::runtime_error("config file not found: " + config_path.string() +
+                                 ". Create wol.toml beside the executable, pass --config <path>, or run 'wol learn "
+                                 "<name> <ipv4>' to create a learned target.");
     }
     auto config = load_config_file(config_path);
     validate_config(config);
@@ -183,7 +181,8 @@ CliOptions parse_cli(int argc, char** argv) {
     }
     if (!positionals.empty()) {
         if (options.command != CommandKind::Wake) {
-            throw std::invalid_argument("target name cannot be combined with control commands such as --list, --help, --version, --check-config, or --print-config-path");
+            throw std::invalid_argument("target name cannot be combined with control commands such as --list, --help, "
+                                        "--version, --check-config, or --print-config-path");
         }
         options.target_name = positionals[0];
     }
@@ -218,8 +217,8 @@ int run_cli(int argc, char** argv) {
         }
 
         auto config = (options.command == CommandKind::Learn && !std::filesystem::exists(config_path))
-            ? Config{}
-            : load_required_config(config_path);
+                          ? Config{}
+                          : load_required_config(config_path);
 
         if (options.command == CommandKind::Learn) {
             if (!options.target_name || !options.learn_ip) {
@@ -230,9 +229,9 @@ int run_cli(int argc, char** argv) {
             save_config_file(config, config_path);
             const auto& target = config.targets.at(*options.target_name);
             if (options.json) {
-                std::cout << "{\"ok\":true,\"action\":\"learn\",\"config_path\":"
-                          << json_string(config_path.string())
-                          << ",\"target\":" << target_json(*options.target_name, target, *options.target_name == config.default_target)
+                std::cout << "{\"ok\":true,\"action\":\"learn\",\"config_path\":" << json_string(config_path.string())
+                          << ",\"target\":"
+                          << target_json(*options.target_name, target, *options.target_name == config.default_target)
                           << "}\n";
                 return 0;
             }
@@ -253,8 +252,8 @@ int run_cli(int argc, char** argv) {
                           << ",\"default_target\":" << json_string(config.default_target)
                           << ",\"target_count\":" << config.targets.size() << "}\n";
             } else {
-                std::cout << "Config OK: " << config_path << " (default target: "
-                          << config.default_target << ", targets: " << config.targets.size() << ")\n";
+                std::cout << "Config OK: " << config_path << " (default target: " << config.default_target
+                          << ", targets: " << config.targets.size() << ")\n";
             }
             return 0;
         }
@@ -288,19 +287,14 @@ int run_cli(int argc, char** argv) {
                 std::cout << "{\"ok\":true,\"action\":\"dry-run\",\"target\":"
                           << json_string(options.target_name ? *options.target_name : config.default_target)
                           << ",\"mac\":" << json_string(format_mac(mac))
-                          << ",\"broadcast\":" << json_string(network.broadcast)
-                          << ",\"port\":" << network.port
-                          << ",\"send_count\":" << network.send_count
-                          << ",\"interval_ms\":" << network.interval_ms << "}\n";
+                          << ",\"broadcast\":" << json_string(network.broadcast) << ",\"port\":" << network.port
+                          << ",\"send_count\":" << network.send_count << ",\"interval_ms\":" << network.interval_ms
+                          << "}\n";
                 return 0;
             }
-            std::cout << "dry-run target="
-                      << (options.target_name ? *options.target_name : config.default_target)
-                      << " mac=" << format_mac(mac)
-                      << " broadcast=" << network.broadcast
-                      << " port=" << network.port
-                      << " send_count=" << network.send_count
-                      << " interval_ms=" << network.interval_ms << '\n';
+            std::cout << "dry-run target=" << (options.target_name ? *options.target_name : config.default_target)
+                      << " mac=" << format_mac(mac) << " broadcast=" << network.broadcast << " port=" << network.port
+                      << " send_count=" << network.send_count << " interval_ms=" << network.interval_ms << '\n';
             return 0;
         }
 
@@ -309,13 +303,11 @@ int run_cli(int argc, char** argv) {
             std::cout << "{\"ok\":true,\"action\":\"wake\",\"target\":"
                       << json_string(options.target_name ? *options.target_name : config.default_target)
                       << ",\"mac\":" << json_string(format_mac(mac))
-                      << ",\"broadcast\":" << json_string(network.broadcast)
-                      << ",\"port\":" << network.port
+                      << ",\"broadcast\":" << json_string(network.broadcast) << ",\"port\":" << network.port
                       << ",\"send_count\":" << network.send_count << "}\n";
             return 0;
         }
-        std::cout << "sent magic packet to "
-                  << (options.target_name ? *options.target_name : config.default_target)
+        std::cout << "sent magic packet to " << (options.target_name ? *options.target_name : config.default_target)
                   << " via " << network.broadcast << ':' << network.port << '\n';
         return 0;
     } catch (const std::invalid_argument& error) {
