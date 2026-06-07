@@ -211,6 +211,6 @@ TEST(HelpTest, DocumentsHumansAndAgents) {
     EXPECT_NE(help.find("Exit codes"), std::string::npos);
 }
 
-TEST(VersionTest, ReportsVersionOnePointZero) {
-    EXPECT_EQ(wol::version_text(), "wol v1.0");
+TEST(VersionTest, ReportsVersionOnePointOne) {
+    EXPECT_EQ(wol::version_text(), "wol v1.1");
 }

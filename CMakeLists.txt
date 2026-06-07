@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(wol VERSION 1.0 LANGUAGES CXX)
+project(wol VERSION 1.1 LANGUAGES CXX)
 
 option(WOL_STATIC_LINK "Build wol as a fully static executable" OFF)
 option(WOL_BUILD_TESTS "Build tests" ON)
