@@ -28,7 +28,7 @@ struct Section {
 };
 
 std::string trim(std::string text) {
-    const auto not_space = [](unsigned char ch) { return !std::isspace(ch); };
+    const auto not_space = [](unsigned char ch) { return std::isspace(ch) == 0; };
     text.erase(text.begin(), std::find_if(text.begin(), text.end(), not_space));
     text.erase(std::find_if(text.rbegin(), text.rend(), not_space).base(), text.end());
     return text;
@@ -52,7 +52,7 @@ bool valid_target_name(const std::string& name) {
         return false;
     }
     return std::all_of(name.begin(), name.end(),
-                       [](unsigned char ch) { return std::isalnum(ch) || ch == '_' || ch == '-' || ch == '.'; });
+                       [](unsigned char ch) { return std::isalnum(ch) != 0 || ch == '_' || ch == '-' || ch == '.'; });
 }
 
 std::string parse_string_value(const std::string& value, int line_number) {
