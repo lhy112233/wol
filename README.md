@@ -1,5 +1,7 @@
 # wol
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 `wol` is a small dependency-free Wake-on-LAN CLI for Linux x86_64. It is built
 for humans and automation agents: normal commands use readable text, and
 supported commands can emit stable JSON with `--json`.
