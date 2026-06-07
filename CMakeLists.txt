@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(wol VERSION 0.1.0 LANGUAGES CXX)
+project(wol VERSION 1.0 LANGUAGES CXX)
 
 option(WOL_STATIC_LINK "Build wol as a fully static executable" OFF)
 option(WOL_BUILD_TESTS "Build tests" ON)
@@ -33,6 +33,7 @@ add_library(wol_core
 )
 
 target_include_directories(wol_core PUBLIC include)
+target_compile_definitions(wol_core PRIVATE WOL_VERSION="${PROJECT_VERSION}")
 target_compile_options(wol_core PRIVATE -Wall -Wextra -Wpedantic)
 
 add_executable(wol app/main.cpp)

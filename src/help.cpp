@@ -2,10 +2,14 @@
 
 #include <sstream>
 
+#ifndef WOL_VERSION
+#define WOL_VERSION "dev"
+#endif
+
 namespace wol {
 
 std::string version_text() {
-    return "wol 0.1.0";
+    return "wol v" WOL_VERSION;
 }
 
 std::string help_text() {
