@@ -76,10 +76,34 @@ This repository includes common GitHub project automation:
 - CI verifies formatting, clang-tidy, dev tests, release-static tests, and static
   package creation.
 - Tag pushes matching `v*` run the release workflow and publish
-  `dist/wol-linux-x86_64.tar.gz` to the GitHub Release.
+  `dist/wol-linux-x86_64.tar.gz`, a SHA256 checksum, and an SPDX SBOM to the
+  GitHub Release.
 - Dependabot checks GitHub Actions updates weekly.
 - Issue templates, a pull request template, CODEOWNERS, CONTRIBUTING, and
   SECURITY files document the normal community workflow.
+
+## Verify A Release
+
+Download these assets from the GitHub Release:
+
+- `wol-linux-x86_64.tar.gz`
+- `wol-linux-x86_64.tar.gz.sha256`
+- `wol-linux-x86_64.spdx.json`
+
+Verify the checksum:
+
+```bash
+sha256sum -c wol-linux-x86_64.tar.gz.sha256
+```
+
+Verify GitHub artifact provenance:
+
+```bash
+gh attestation verify wol-linux-x86_64.tar.gz --repo lhy112233/wol
+```
+
+The SBOM is published as SPDX JSON beside the tarball. It is not included inside
+the runtime archive, so the archive still contains only `wol` and `wol.toml`.
 
 ## Build Prerequisites
 

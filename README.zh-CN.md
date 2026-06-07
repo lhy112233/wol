@@ -75,10 +75,33 @@ dist/wol-linux-x86_64.tar.gz
 - CI 会在 push 到 `main`、pull request 和手动触发时运行。
 - CI 会验证格式、clang-tidy、dev 测试、release-static 测试和静态打包。
 - 推送匹配 `v*` 的 tag 会运行 release workflow，并把
-  `dist/wol-linux-x86_64.tar.gz` 发布到 GitHub Release。
+  `dist/wol-linux-x86_64.tar.gz`、SHA256 校验文件和 SPDX SBOM 发布到 GitHub Release。
 - Dependabot 每周检查 GitHub Actions 更新。
 - Issue 模板、PR 模板、CODEOWNERS、CONTRIBUTING 和 SECURITY 文件记录了常规
   社区协作流程。
+
+## 验证发布包
+
+从 GitHub Release 下载这些资产：
+
+- `wol-linux-x86_64.tar.gz`
+- `wol-linux-x86_64.tar.gz.sha256`
+- `wol-linux-x86_64.spdx.json`
+
+验证 SHA256：
+
+```bash
+sha256sum -c wol-linux-x86_64.tar.gz.sha256
+```
+
+验证 GitHub artifact provenance：
+
+```bash
+gh attestation verify wol-linux-x86_64.tar.gz --repo lhy112233/wol
+```
+
+SBOM 会以 SPDX JSON 形式随 release 发布。它不会放进运行时压缩包，所以压缩包仍然
+只包含 `wol` 和 `wol.toml`。
 
 ## 构建依赖
 

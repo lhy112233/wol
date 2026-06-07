@@ -13,6 +13,9 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -42,7 +45,8 @@ jobs:
             libgtest-dev \
             ninja-build \
             tar \
-            gzip
+            gzip \
+            curl
 
       - name: Configure release-static preset
         run: cmake --preset release-static
@@ -67,15 +71,78 @@ jobs:
           file build/package/wol | grep -i "statically linked"
           test "$(tar -tzf dist/wol-linux-x86_64.tar.gz | sort | tr '\n' ' ')" = "wol wol.toml "
 
+      - name: Generate SHA256 checksum
+        run: |
+          cd dist
+          sha256sum wol-linux-x86_64.tar.gz > wol-linux-x86_64.tar.gz.sha256
+          sha256sum -c wol-linux-x86_64.tar.gz.sha256
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Generate SPDX SBOM
+        run: syft scan dir:build/package/package -o spdx-json=dist/wol-linux-x86_64.spdx.json
+
+      - name: Attest release tarball provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/wol-linux-x86_64.tar.gz
+
+      - name: Write release notes
+        env:
+          TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          checksum="$(cut -d ' ' -f 1 dist/wol-linux-x86_64.tar.gz.sha256)"
+          cat > dist/release-notes.md <<EOF
+          # wol ${TAG_NAME}
+
+          Fully static Linux x86_64 WOL CLI release.
+
+          Runtime archive contents:
+          - wol
+          - wol.toml
+
+          Release assets:
+          - wol-linux-x86_64.tar.gz
+          - wol-linux-x86_64.tar.gz.sha256
+          - wol-linux-x86_64.spdx.json
+
+          SHA256:
+
+          \`\`\`text
+          ${checksum}  wol-linux-x86_64.tar.gz
+          \`\`\`
+
+          Verify the checksum:
+
+          \`\`\`bash
+          sha256sum -c wol-linux-x86_64.tar.gz.sha256
+          \`\`\`
+
+          Verify GitHub artifact provenance:
+
+          \`\`\`bash
+          gh attestation verify wol-linux-x86_64.tar.gz --repo lhy112233/wol
+          \`\`\`
+          EOF
+
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: |
           if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
-            gh release upload "${TAG_NAME}" dist/wol-linux-x86_64.tar.gz --clobber
+            gh release upload "${TAG_NAME}" \
+              dist/wol-linux-x86_64.tar.gz \
+              dist/wol-linux-x86_64.tar.gz.sha256 \
+              dist/wol-linux-x86_64.spdx.json \
+              --clobber
+            gh release edit "${TAG_NAME}" --notes-file dist/release-notes.md
           else
-            gh release create "${TAG_NAME}" dist/wol-linux-x86_64.tar.gz \
+            gh release create "${TAG_NAME}" \
+              dist/wol-linux-x86_64.tar.gz \
+              dist/wol-linux-x86_64.tar.gz.sha256 \
+              dist/wol-linux-x86_64.spdx.json \
               --title "wol ${TAG_NAME}" \
-              --notes "Fully static Linux x86_64 WOL CLI release. The archive contains exactly wol and wol.toml."
+              --notes-file dist/release-notes.md
           fi

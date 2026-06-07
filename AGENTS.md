@@ -23,6 +23,8 @@ This repository builds `wol`, a fully static Linux x86_64 Wake-on-LAN CLI.
 - GitHub CI mirrors the local verification loop. Keep `.github/workflows/ci.yml`
   in sync when build, test, package, or tool prerequisites change.
 - Tag releases use `.github/workflows/release.yml`; tags must be named `v*`.
+  Releases publish the tarball, SHA256 checksum, SPDX SBOM, and GitHub artifact
+  attestation.
 - Dependabot is configured only for GitHub Actions updates.
 
 ## Important Interfaces
