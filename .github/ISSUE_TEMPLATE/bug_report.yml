@@ -1,0 +1,49 @@
+name: Bug report
+description: Report a reproducible problem with wol.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. Please include enough detail for someone else to reproduce it.
+  - type: input
+    id: version
+    attributes:
+      label: wol version
+      description: Run `wol --version`.
+      placeholder: "wol v1.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: distro
+    attributes:
+      label: Linux distribution
+      options:
+        - Debian or Ubuntu
+        - Fedora
+        - Other Linux
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and output
+      description: Paste the exact command and output. Use `--json` when the issue involves automation.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant wol.toml
+      description: Remove or mask private network details if needed.
+      render: toml
+    validations:
+      required: false

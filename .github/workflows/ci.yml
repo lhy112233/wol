@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Format, tidy, and dev tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install build and analysis tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils \
+            clang-format \
+            clang-tidy \
+            cmake \
+            file \
+            g++ \
+            libgtest-dev \
+            ninja-build \
+            tar \
+            gzip
+
+      - name: Configure dev preset
+        run: cmake --preset dev
+
+      - name: Check formatting
+        run: cmake --build --preset format-check
+
+      - name: Build dev preset
+        run: cmake --build --preset dev
+
+      - name: Run clang-tidy
+        run: cmake --build --preset tidy
+
+      - name: Run dev tests
+        run: ctest --preset dev
+
+  static-release:
+    name: Fully static release package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install static build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils \
+            cmake \
+            file \
+            g++ \
+            libc6-dev \
+            libgtest-dev \
+            ninja-build \
+            tar \
+            gzip
+
+      - name: Configure release-static preset
+        run: cmake --preset release-static
+
+      - name: Build release-static preset
+        run: cmake --build --preset release-static
+
+      - name: Run release-static tests
+        run: ctest --preset release-static
+
+      - name: Configure package preset
+        run: cmake --preset package
+
+      - name: Build package
+        run: cmake --build --preset package
+
+      - name: Verify packaged executable
+        run: |
+          ./build/package/wol --version
+          ldd build/package/wol 2>&1 | grep -E "not a dynamic executable|not a dynamic"
+          readelf -d build/package/wol 2>&1 | grep "There is no dynamic section"
+          file build/package/wol | grep -i "statically linked"
+          test "$(tar -tzf dist/wol-linux-x86_64.tar.gz | sort | tr '\n' ' ')" = "wol wol.toml "
+
+      - name: Upload release package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wol-linux-x86_64
+          path: dist/wol-linux-x86_64.tar.gz
+          if-no-files-found: error

@@ -20,6 +20,10 @@ This repository builds `wol`, a fully static Linux x86_64 Wake-on-LAN CLI.
   - `cmake --build --preset package`
 - Before claiming release readiness, verify `dist/wol-linux-x86_64.tar.gz` contains exactly `wol` and `wol.toml`.
 - Use `cmake --build --preset format` only when intentionally applying formatting.
+- GitHub CI mirrors the local verification loop. Keep `.github/workflows/ci.yml`
+  in sync when build, test, package, or tool prerequisites change.
+- Tag releases use `.github/workflows/release.yml`; tags must be named `v*`.
+- Dependabot is configured only for GitHub Actions updates.
 
 ## Important Interfaces
 
@@ -41,3 +45,5 @@ This repository builds `wol`, a fully static Linux x86_64 Wake-on-LAN CLI.
 - `tests/CliBehavior.cmake`: business-level CLI output checks.
 - `docs/`: architecture, testing, release, and handoff notes.
 - `.clang-format` and `.clang-tidy`: formatting and C++ Core Guidelines static-analysis policy.
+- `.github/`: CI/CD workflows, issue templates, PR template, CODEOWNERS, and
+  Dependabot configuration.

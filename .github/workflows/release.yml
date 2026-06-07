@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release, for example v1.1"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build and publish static tarball
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: Install static build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils \
+            cmake \
+            file \
+            g++ \
+            libc6-dev \
+            libgtest-dev \
+            ninja-build \
+            tar \
+            gzip
+
+      - name: Configure release-static preset
+        run: cmake --preset release-static
+
+      - name: Build release-static preset
+        run: cmake --build --preset release-static
+
+      - name: Run release-static tests
+        run: ctest --preset release-static
+
+      - name: Configure package preset
+        run: cmake --preset package
+
+      - name: Build package
+        run: cmake --build --preset package
+
+      - name: Verify archive contents
+        run: |
+          ./build/package/wol --version
+          ldd build/package/wol 2>&1 | grep -E "not a dynamic executable|not a dynamic"
+          readelf -d build/package/wol 2>&1 | grep "There is no dynamic section"
+          file build/package/wol | grep -i "statically linked"
+          test "$(tar -tzf dist/wol-linux-x86_64.tar.gz | sort | tr '\n' ' ')" = "wol wol.toml "
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            gh release upload "${TAG_NAME}" dist/wol-linux-x86_64.tar.gz --clobber
+          else
+            gh release create "${TAG_NAME}" dist/wol-linux-x86_64.tar.gz \
+              --title "wol ${TAG_NAME}" \
+              --notes "Fully static Linux x86_64 WOL CLI release. The archive contains exactly wol and wol.toml."
+          fi

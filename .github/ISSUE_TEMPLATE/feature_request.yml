@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest a focused improvement.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What workflow is hard or missing today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest useful change.
+    validations:
+      required: true
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Project constraints
+      options:
+        - label: This can keep the release binary dependency-free.
+          required: true
+        - label: This can keep the release archive limited to `wol` and `wol.toml`.
+          required: true

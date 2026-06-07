@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Built-in help
+    url: https://github.com/lhy112233/wol#usage
+    about: Check usage, config, and troubleshooting notes before opening an issue.

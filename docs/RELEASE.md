@@ -43,3 +43,21 @@ The archive must contain exactly:
 wol
 wol.toml
 ```
+
+## GitHub Release Workflow
+
+Pushing a tag named `v*` runs `.github/workflows/release.yml`.
+
+The workflow:
+
+1. Builds and tests the `release-static` preset.
+2. Builds the `package` preset.
+3. Verifies static linkage and archive contents.
+4. Creates or updates the GitHub Release for the tag.
+5. Uploads `dist/wol-linux-x86_64.tar.gz`.
+
+Manual releases can still be created locally with the GitHub CLI:
+
+```bash
+gh release create v1.1 dist/wol-linux-x86_64.tar.gz --title "wol v1.1"
+```

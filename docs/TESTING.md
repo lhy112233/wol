@@ -26,6 +26,18 @@ cmake --build --preset release-static
 ctest --preset release-static
 ```
 
+## GitHub CI
+
+The `CI` workflow runs on pushes to `main`, pull requests targeting `main`, and
+manual dispatch. It has two jobs:
+
+- `Format, tidy, and dev tests`: installs common Ubuntu build tools, configures
+  `dev`, runs `format-check`, builds, runs `tidy`, and executes `ctest --preset
+  dev`.
+- `Fully static release package`: configures `release-static`, builds, runs
+  release tests, builds the package target, verifies the binary is static, and
+  uploads `dist/wol-linux-x86_64.tar.gz` as an artifact.
+
 ## Coverage Areas
 
 - GoogleTest unit tests cover parsing, formatting, magic packet layout, config roundtrips, validation, ARP parsing, subnet broadcast selection, CLI parsing, and help content.

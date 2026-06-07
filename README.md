@@ -66,6 +66,19 @@ It verifies that the executable is static before creating the archive:
 - `readelf -d wol` must not contain `NEEDED` entries.
 - `file wol` must report a statically linked executable.
 
+## GitHub Automation
+
+This repository includes common GitHub project automation:
+
+- CI runs on pushes to `main`, pull requests, and manual dispatch.
+- CI verifies formatting, clang-tidy, dev tests, release-static tests, and static
+  package creation.
+- Tag pushes matching `v*` run the release workflow and publish
+  `dist/wol-linux-x86_64.tar.gz` to the GitHub Release.
+- Dependabot checks GitHub Actions updates weekly.
+- Issue templates, a pull request template, CODEOWNERS, CONTRIBUTING, and
+  SECURITY files document the normal community workflow.
+
 ## Build Prerequisites
 
 Debian/Ubuntu:
