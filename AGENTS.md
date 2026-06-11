@@ -22,6 +22,7 @@ This repository builds `wol`, a fully static Linux x86_64 Wake-on-LAN CLI.
 - Use `cmake --build --preset format` only when intentionally applying formatting.
 - GitHub CI mirrors the local verification loop. Keep `.github/workflows/ci.yml`
   in sync when build, test, package, or tool prerequisites change.
+  The static-release CI job also generates checksum and SPDX SBOM sidecar files.
 - Tag releases use `.github/workflows/release.yml`; tags must be named `v*`.
   Releases publish the tarball, SHA256 checksum, SPDX SBOM, and GitHub artifact
   attestation.

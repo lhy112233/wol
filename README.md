@@ -104,6 +104,8 @@ gh attestation verify wol-linux-x86_64.tar.gz --repo lhy112233/wol
 
 The SBOM is published as SPDX JSON beside the tarball. It is not included inside
 the runtime archive, so the archive still contains only `wol` and `wol.toml`.
+The GitHub Release workflow creates the SBOM automatically; manual releases
+must generate it before uploading assets.
 
 ## Build Prerequisites
 
@@ -122,6 +124,9 @@ sudo dnf install cmake ninja-build gcc-c++ glibc-static libstdc++-static gtest-d
 Some distributions split static C++ runtime files into a separate package. If
 `release-static` fails because `libstdc++.a` or `libc.a` is missing, install the
 distribution package that provides those static libraries.
+
+Release maintainers also need Syft when generating SBOM files outside GitHub
+Actions. See [Release](docs/RELEASE.md) for the local SBOM command.
 
 ## Usage
 

@@ -5,16 +5,24 @@
 Fedora:
 
 ```bash
-sudo dnf install cmake ninja-build gcc-c++ glibc-static libstdc++-static gtest-devel binutils file tar gzip
+sudo dnf install cmake ninja-build gcc-c++ glibc-static libstdc++-static gtest-devel binutils file tar gzip curl
 ```
 
 Debian/Ubuntu:
 
 ```bash
-sudo apt install cmake ninja-build g++ libc6-dev libgtest-dev binutils file tar gzip
+sudo apt install cmake ninja-build g++ libc6-dev libgtest-dev binutils file tar gzip curl
 ```
 
 Distribution package names for static C++ runtime files may vary.
+
+SBOM generation uses Syft. In GitHub Actions, the workflow installs Syft with
+`anchore/sbom-action/download-syft@v0`. For local manual releases, install Syft
+from Anchore's release packages or install script:
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b ~/.local/bin
+```
 
 ## Build And Package
 
@@ -107,6 +115,14 @@ Confirm the checksum locally:
 cd dist
 sha256sum wol-linux-x86_64.tar.gz > /tmp/wol-linux-x86_64.tar.gz.sha256
 sha256sum -c /tmp/wol-linux-x86_64.tar.gz.sha256
+```
+
+Generate local release sidecar files before a manual upload:
+
+```bash
+cd ..
+sha256sum dist/wol-linux-x86_64.tar.gz > dist/wol-linux-x86_64.tar.gz.sha256
+syft scan dir:build/package/package -o spdx-json=dist/wol-linux-x86_64.spdx.json
 ```
 
 After the GitHub Release workflow completes, confirm the release assets include:

@@ -156,6 +156,7 @@ if(WOL_BUILD_TESTS)
             -DWOL_BINARY=$<TARGET_FILE:wol>
             -DSAMPLE_CONFIG=${CMAKE_SOURCE_DIR}/wol.toml
             -DMISSING_CONFIG=${CMAKE_SOURCE_DIR}/does-not-exist.toml
+            -DJSON_TEMP_DIR=${CMAKE_CURRENT_BINARY_DIR}/cli-json
             -P ${CMAKE_SOURCE_DIR}/tests/CliBehavior.cmake
     )
 endif()

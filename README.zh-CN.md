@@ -101,7 +101,8 @@ gh attestation verify wol-linux-x86_64.tar.gz --repo lhy112233/wol
 ```
 
 SBOM 会以 SPDX JSON 形式随 release 发布。它不会放进运行时压缩包，所以压缩包仍然
-只包含 `wol` 和 `wol.toml`。
+只包含 `wol` 和 `wol.toml`。GitHub Release workflow 会自动生成 SBOM；如果手动
+发布，需要先生成 SBOM 再上传资产。
 
 ## 构建依赖
 
@@ -120,6 +121,9 @@ sudo dnf install cmake ninja-build gcc-c++ glibc-static libstdc++-static gtest-d
 不同发行版可能会把静态 C++ 运行时文件拆到单独的软件包中。如果
 `release-static` 因为缺少 `libstdc++.a` 或 `libc.a` 失败，请安装发行版提供的
 对应静态库软件包。
+
+如果维护者需要在 GitHub Actions 之外生成 SBOM，还需要安装 Syft。具体本地命令见
+[Release](docs/RELEASE.md)。
 
 ## 使用
 

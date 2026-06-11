@@ -143,6 +143,22 @@ TEST(ConfigTest, LoadsValidatesSelectsAndRoundtripsToml) {
     EXPECT_EQ(require_optional(roundtrip.targets.at("desktop").ip), "192.168.1.20");
 }
 
+TEST(ConfigTest, AtomicSaveLeavesNoTemporaryConfigFile) {
+    const auto saved = temp_file("wol-config-atomic.toml");
+    auto config = wol::Config{};
+    config.default_target = "desktop";
+    config.targets["desktop"].mac = "AA:BB:CC:DD:EE:FF";
+
+    wol::save_config_file(config, saved);
+
+    const auto roundtrip = wol::load_config_file(saved);
+    EXPECT_NO_THROW(wol::validate_config(roundtrip));
+    const auto prefix = "." + saved.filename().string() + ".tmp.";
+    for (const auto& entry : std::filesystem::directory_iterator(saved.parent_path())) {
+        EXPECT_FALSE(entry.path().filename().string().starts_with(prefix));
+    }
+}
+
 TEST(ConfigTest, DefaultsToDebianWakeonlanSingleSendWireBehavior) {
     const wol::NetworkConfig network;
 

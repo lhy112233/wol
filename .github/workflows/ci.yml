@@ -100,9 +100,24 @@ jobs:
           file build/package/wol | grep -i "statically linked"
           test "$(tar -tzf dist/wol-linux-x86_64.tar.gz | sort | tr '\n' ' ')" = "wol wol.toml "
 
+      - name: Generate SHA256 checksum
+        run: |
+          cd dist
+          sha256sum wol-linux-x86_64.tar.gz > wol-linux-x86_64.tar.gz.sha256
+          sha256sum -c wol-linux-x86_64.tar.gz.sha256
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Generate SPDX SBOM
+        run: syft scan dir:build/package/package -o spdx-json=dist/wol-linux-x86_64.spdx.json
+
       - name: Upload release package artifact
         uses: actions/upload-artifact@v7
         with:
           name: wol-linux-x86_64
-          path: dist/wol-linux-x86_64.tar.gz
+          path: |
+            dist/wol-linux-x86_64.tar.gz
+            dist/wol-linux-x86_64.tar.gz.sha256
+            dist/wol-linux-x86_64.spdx.json
           if-no-files-found: error

@@ -6,10 +6,12 @@
 #include <cstring>
 #include <fstream>
 #include <optional>
+#include <ostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <sys/types.h>
+#include <system_error>
 #include <unistd.h>
 
 namespace wol {
@@ -112,6 +114,36 @@ void validate_port(int port, const std::string& label) {
     }
 }
 
+std::filesystem::path temporary_config_path(const std::filesystem::path& path) {
+    const auto parent = path.parent_path();
+    const auto filename = path.filename().string();
+    const auto temporary_name = "." + filename + ".tmp." + std::to_string(getpid());
+    return parent.empty() ? std::filesystem::path(temporary_name) : parent / temporary_name;
+}
+
+void write_config_contents(std::ostream& out, const Config& config) {
+    out << "default_target = " << quote_string(config.default_target) << "\n\n";
+    out << "[network]\n";
+    out << "port = " << config.network.port << "\n";
+    out << "send_count = " << config.network.send_count << "\n";
+    out << "interval_ms = " << config.network.interval_ms << "\n";
+    out << "broadcast = " << quote_string(config.network.broadcast) << "\n";
+
+    for (const auto& [name, target] : config.targets) {
+        out << "\n[targets." << name << "]\n";
+        out << "mac = " << quote_string(target.mac) << "\n";
+        if (target.ip) {
+            out << "ip = " << quote_string(*target.ip) << "\n";
+        }
+        if (target.broadcast) {
+            out << "broadcast = " << quote_string(*target.broadcast) << "\n";
+        }
+        if (target.port) {
+            out << "port = " << *target.port << "\n";
+        }
+    }
+}
+
 } // namespace
 
 Config load_config_file(const std::filesystem::path& path) {
@@ -198,30 +230,24 @@ Config load_config_file(const std::filesystem::path& path) {
 }
 
 void save_config_file(const Config& config, const std::filesystem::path& path) {
-    std::ofstream out(path);
-    if (!out) {
-        throw std::runtime_error("failed to write config file: " + path.string());
-    }
-
-    out << "default_target = " << quote_string(config.default_target) << "\n\n";
-    out << "[network]\n";
-    out << "port = " << config.network.port << "\n";
-    out << "send_count = " << config.network.send_count << "\n";
-    out << "interval_ms = " << config.network.interval_ms << "\n";
-    out << "broadcast = " << quote_string(config.network.broadcast) << "\n";
-
-    for (const auto& [name, target] : config.targets) {
-        out << "\n[targets." << name << "]\n";
-        out << "mac = " << quote_string(target.mac) << "\n";
-        if (target.ip) {
-            out << "ip = " << quote_string(*target.ip) << "\n";
+    const auto temporary_path = temporary_config_path(path);
+    try {
+        {
+            std::ofstream out(temporary_path, std::ios::trunc);
+            if (!out) {
+                throw std::runtime_error("failed to open temporary config file: " + temporary_path.string());
+            }
+            write_config_contents(out, config);
+            out.flush();
+            if (!out) {
+                throw std::runtime_error("failed to write temporary config file: " + temporary_path.string());
+            }
         }
-        if (target.broadcast) {
-            out << "broadcast = " << quote_string(*target.broadcast) << "\n";
-        }
-        if (target.port) {
-            out << "port = " << *target.port << "\n";
-        }
+        std::filesystem::rename(temporary_path, path);
+    } catch (const std::exception& error) {
+        std::error_code ignored;
+        std::filesystem::remove(temporary_path, ignored);
+        throw std::runtime_error("failed to write config file atomically: " + path.string() + ": " + error.what());
     }
 }
 
