@@ -247,6 +247,9 @@ TEST(HelpTest, DocumentsHumansAndAgents) {
     EXPECT_NE(help.find("wol learn <name> <ipv4>"), std::string::npos);
     EXPECT_NE(help.find("--json"), std::string::npos);
     EXPECT_NE(help.find("--check-config"), std::string::npos);
+    EXPECT_NE(help.find("--dry-run only applies to wake commands"), std::string::npos);
+    EXPECT_NE(help.find("Successful JSON is written to stdout"), std::string::npos);
+    EXPECT_NE(help.find("JSON errors are written to stderr"), std::string::npos);
     EXPECT_NE(help.find("Exit codes"), std::string::npos);
 }
 

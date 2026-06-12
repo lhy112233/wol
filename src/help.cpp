@@ -22,7 +22,7 @@ same packet format.
 
 Usage:
   wol [options] [target]
-  wol learn [options] <name> <ipv4>
+  wol [--config <path>] [--json] learn <name> <ipv4>
   wol --list [--config <path>]
   wol --help
   wol --version
@@ -45,6 +45,8 @@ Options:
   --json            Emit stable JSON for agent/automation-friendly commands.
   --dry-run         Validate and print the selected wake packet destination
                    without sending network packets.
+                   --dry-run only applies to wake commands: wol --dry-run
+                   [target].
   --list            List configured targets.
   --check-config    Validate the config file and report the selected default.
   --print-config-path
@@ -66,7 +68,8 @@ Examples:
 
 Agent and script usage:
   Use --json with --list, --dry-run, --check-config, learn, and wake commands
-  when another program needs stable output. JSON errors use this shape:
+  when another program needs stable output. Successful JSON is written to stdout.
+  JSON errors are written to stderr and use this shape:
   {"ok":false,"error":{"kind":"runtime","message":"...","exit_code":1}}
   Commands never prompt interactively and do not use color output.
 
