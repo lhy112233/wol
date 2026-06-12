@@ -160,6 +160,13 @@ Agent 友好的 JSON 输出：
 ./wol --print-config-path
 ```
 
+自动化契约：
+
+- 成功的 JSON 输出写入 stdout。
+- JSON 错误写入 stderr，并包含 `ok:false`、`error.kind`、`error.message`
+  和 `error.exit_code`。
+- `--dry-run` 只适用于唤醒命令：`wol --dry-run [name]`。
+
 学习一个在线的本地 IPv4 目标：
 
 ```bash

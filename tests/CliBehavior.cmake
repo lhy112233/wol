@@ -47,6 +47,38 @@ function(run_json_and_expect name expected_output output_file)
     endif()
 endfunction()
 
+function(run_error_json_and_expect name expected_result expected_output output_file)
+    execute_process(
+        COMMAND ${ARGN}
+        RESULT_VARIABLE result
+        OUTPUT_VARIABLE output
+        ERROR_VARIABLE error
+    )
+    if(NOT result EQUAL expected_result)
+        message(FATAL_ERROR
+            "${name}: expected exit ${expected_result}, got ${result}\nstdout:\n${output}\nstderr:\n${error}")
+    endif()
+    if(NOT output STREQUAL "")
+        message(FATAL_ERROR
+            "${name}: expected JSON error stdout to be empty\nstdout:\n${output}\nstderr:\n${error}")
+    endif()
+    file(WRITE "${output_file}" "${error}")
+    execute_process(
+        COMMAND "${PYTHON3_EXE}" -m json.tool "${output_file}"
+        RESULT_VARIABLE json_result
+        OUTPUT_VARIABLE json_output
+        ERROR_VARIABLE json_error
+    )
+    if(NOT json_result EQUAL 0)
+        message(FATAL_ERROR
+            "${name}: stderr was not valid JSON\nstderr:\n${error}\njson stdout:\n${json_output}\njson stderr:\n${json_error}")
+    endif()
+    if(NOT error MATCHES "${expected_output}")
+        message(FATAL_ERROR
+            "${name}: expected JSON error to match '${expected_output}'\nstderr:\n${error}")
+    endif()
+endfunction()
+
 run_and_expect("dry-run json" 0 "\"action\":\"dry-run\""
     "${WOL_BINARY}" --config "${SAMPLE_CONFIG}" --dry-run --json desktop)
 
@@ -64,6 +96,12 @@ run_json_and_expect("list json parses" "\"targets\"" "${JSON_TEMP_DIR}/list.json
 
 run_json_and_expect("check config json parses" "\"target_count\"" "${JSON_TEMP_DIR}/check-config.json"
     "${WOL_BINARY}" --config "${SAMPLE_CONFIG}" --check-config --json)
+
+run_error_json_and_expect("missing config json parses" 1 "\"kind\":\"runtime\"" "${JSON_TEMP_DIR}/missing-config-error.json"
+    "${WOL_BINARY}" --config "${MISSING_CONFIG}" --check-config --json)
+
+run_error_json_and_expect("unknown option json parses" 2 "\"kind\":\"usage\"" "${JSON_TEMP_DIR}/unknown-option-error.json"
+    "${WOL_BINARY}" --bogus --json)
 
 run_and_expect("check config text" 0 "Config OK"
     "${WOL_BINARY}" --config "${SAMPLE_CONFIG}" --check-config)
@@ -85,3 +123,16 @@ run_and_expect("learn missing args" 2 "usage error: usage: wol learn <name> <ipv
 
 run_and_expect("control command with target" 2 "target name cannot be combined"
     "${WOL_BINARY}" --list desktop)
+
+run_and_expect("dry-run cannot combine with learn" 2 "--dry-run can only be used with wake commands"
+    "${WOL_BINARY}" --config "${JSON_TEMP_DIR}/dry-run-learn.toml" --dry-run learn desktop 192.168.1.10)
+
+if(EXISTS "${JSON_TEMP_DIR}/dry-run-learn.toml")
+    message(FATAL_ERROR "dry-run learn created a config file unexpectedly")
+endif()
+
+run_and_expect("dry-run cannot combine with list" 2 "--dry-run can only be used with wake commands"
+    "${WOL_BINARY}" --config "${SAMPLE_CONFIG}" --list --dry-run)
+
+run_and_expect("dry-run cannot combine with check config" 2 "--dry-run can only be used with wake commands"
+    "${WOL_BINARY}" --config "${SAMPLE_CONFIG}" --check-config --dry-run)

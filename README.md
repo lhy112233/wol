@@ -163,6 +163,13 @@ Agent-friendly JSON:
 ./wol --print-config-path
 ```
 
+Automation contract:
+
+- Successful JSON output is written to stdout.
+- JSON errors are written to stderr and include `ok:false`, `error.kind`,
+  `error.message`, and `error.exit_code`.
+- `--dry-run` is only valid for wake commands: `wol --dry-run [name]`.
+
 Learn an online local IPv4 target:
 
 ```bash

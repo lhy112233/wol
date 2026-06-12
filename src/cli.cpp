@@ -167,6 +167,9 @@ CliOptions parse_cli(int argc, char** argv) {
         if (options.command != CommandKind::Wake) {
             throw std::invalid_argument("learn cannot be combined with --list, --help, or --version");
         }
+        if (options.dry_run) {
+            throw std::invalid_argument("--dry-run can only be used with wake commands");
+        }
         if (positionals.size() != 3) {
             throw std::invalid_argument("usage: wol learn <name> <ipv4>");
         }
@@ -185,6 +188,9 @@ CliOptions parse_cli(int argc, char** argv) {
                                         "--version, --check-config, or --print-config-path");
         }
         options.target_name = positionals[0];
+    }
+    if (options.dry_run && options.command != CommandKind::Wake) {
+        throw std::invalid_argument("--dry-run can only be used with wake commands");
     }
     return options;
 }

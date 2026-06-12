@@ -1,9 +1,11 @@
 #include "wol/config.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cctype>
 #include <cerrno>
 #include <cstring>
+#include <fcntl.h>
 #include <fstream>
 #include <optional>
 #include <ostream>
@@ -115,9 +117,12 @@ void validate_port(int port, const std::string& label) {
 }
 
 std::filesystem::path temporary_config_path(const std::filesystem::path& path) {
+    static std::atomic<unsigned long long> counter{0};
+
     const auto parent = path.parent_path();
     const auto filename = path.filename().string();
-    const auto temporary_name = "." + filename + ".tmp." + std::to_string(getpid());
+    const auto sequence = counter.fetch_add(1, std::memory_order_relaxed);
+    const auto temporary_name = "." + filename + ".tmp." + std::to_string(getpid()) + "." + std::to_string(sequence);
     return parent.empty() ? std::filesystem::path(temporary_name) : parent / temporary_name;
 }
 
@@ -140,6 +145,99 @@ void write_config_contents(std::ostream& out, const Config& config) {
         }
         if (target.port) {
             out << "port = " << *target.port << "\n";
+        }
+    }
+}
+
+std::string config_contents(const Config& config) {
+    std::ostringstream out;
+    write_config_contents(out, config);
+    return out.str();
+}
+
+std::runtime_error errno_error(const std::string& message) {
+    return std::runtime_error(message + ": " + std::strerror(errno));
+}
+
+class FileDescriptor {
+  public:
+    explicit FileDescriptor(int fd) : fd_(fd) {}
+    FileDescriptor(const FileDescriptor&) = delete;
+    FileDescriptor& operator=(const FileDescriptor&) = delete;
+    FileDescriptor(FileDescriptor&&) = delete;
+    FileDescriptor& operator=(FileDescriptor&&) = delete;
+    ~FileDescriptor() {
+        if (fd_ >= 0) {
+            (void)::close(fd_);
+        }
+    }
+
+    [[nodiscard]]
+    int get() const {
+        return fd_;
+    }
+
+    void close_or_throw(const std::string& path) {
+        if (fd_ >= 0 && ::close(fd_) != 0) {
+            fd_ = -1;
+            throw errno_error("failed to close " + path);
+        }
+        fd_ = -1;
+    }
+
+  private:
+    int fd_ = -1;
+};
+
+FileDescriptor create_unique_temporary_file(const std::filesystem::path& path, std::filesystem::path& temporary_path) {
+    for (int attempt = 0; attempt < 100; ++attempt) {
+        temporary_path = temporary_config_path(path);
+        const int fd = ::open(temporary_path.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+        if (fd >= 0) {
+            return FileDescriptor(fd);
+        }
+        if (errno != EEXIST) {
+            throw errno_error("failed to open temporary config file " + temporary_path.string());
+        }
+    }
+    throw std::runtime_error("failed to create a unique temporary config file for " + path.string());
+}
+
+void write_all(int fd, const std::string& content, const std::filesystem::path& path) {
+    std::size_t written = 0;
+    while (written < content.size()) {
+        const auto result = ::write(fd, content.data() + written, content.size() - written);
+        if (result < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            throw errno_error("failed to write temporary config file " + path.string());
+        }
+        if (result == 0) {
+            throw std::runtime_error("failed to write temporary config file " + path.string() + ": wrote zero bytes");
+        }
+        written += static_cast<std::size_t>(result);
+    }
+}
+
+void fsync_file_or_throw(int fd, const std::filesystem::path& path) {
+    while (::fsync(fd) != 0) {
+        if (errno != EINTR) {
+            throw errno_error("failed to sync temporary config file " + path.string());
+        }
+    }
+}
+
+void fsync_parent_directory(const std::filesystem::path& path) {
+    const auto parent = path.parent_path().empty() ? std::filesystem::path(".") : path.parent_path();
+    const int fd = ::open(parent.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (fd < 0) {
+        return;
+    }
+    FileDescriptor directory(fd);
+    while (::fsync(directory.get()) != 0) {
+        if (errno != EINTR) {
+            return;
         }
     }
 }
@@ -230,23 +328,22 @@ Config load_config_file(const std::filesystem::path& path) {
 }
 
 void save_config_file(const Config& config, const std::filesystem::path& path) {
-    const auto temporary_path = temporary_config_path(path);
+    std::filesystem::path temporary_path;
     try {
         {
-            std::ofstream out(temporary_path, std::ios::trunc);
-            if (!out) {
-                throw std::runtime_error("failed to open temporary config file: " + temporary_path.string());
-            }
-            write_config_contents(out, config);
-            out.flush();
-            if (!out) {
-                throw std::runtime_error("failed to write temporary config file: " + temporary_path.string());
-            }
+            auto temporary_file = create_unique_temporary_file(path, temporary_path);
+            const auto content = config_contents(config);
+            write_all(temporary_file.get(), content, temporary_path);
+            fsync_file_or_throw(temporary_file.get(), temporary_path);
+            temporary_file.close_or_throw(temporary_path.string());
         }
         std::filesystem::rename(temporary_path, path);
+        fsync_parent_directory(path);
     } catch (const std::exception& error) {
         std::error_code ignored;
-        std::filesystem::remove(temporary_path, ignored);
+        if (!temporary_path.empty()) {
+            std::filesystem::remove(temporary_path, ignored);
+        }
         throw std::runtime_error("failed to write config file atomically: " + path.string() + ": " + error.what());
     }
 }

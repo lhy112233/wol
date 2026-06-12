@@ -12,6 +12,8 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <sys/types.h>
+#include <unistd.h>
 #include <vector>
 
 namespace {
@@ -157,6 +159,27 @@ TEST(ConfigTest, AtomicSaveLeavesNoTemporaryConfigFile) {
     for (const auto& entry : std::filesystem::directory_iterator(saved.parent_path())) {
         EXPECT_FALSE(entry.path().filename().string().starts_with(prefix));
     }
+}
+
+TEST(ConfigTest, AtomicSaveDoesNotReuseExistingPidTemporaryPath) {
+    const auto saved = temp_file("wol-config-unique.toml");
+    const auto stale_temp =
+        saved.parent_path() / ("." + saved.filename().string() + ".tmp." + std::to_string(getpid()));
+    std::filesystem::remove(stale_temp);
+    write_text(stale_temp, "keep me");
+
+    auto config = wol::Config{};
+    config.default_target = "desktop";
+    config.targets["desktop"].mac = "AA:BB:CC:DD:EE:FF";
+
+    wol::save_config_file(config, saved);
+
+    EXPECT_TRUE(std::filesystem::exists(stale_temp));
+    std::ifstream stale(stale_temp);
+    std::string stale_text;
+    std::getline(stale, stale_text);
+    EXPECT_EQ(stale_text, "keep me");
+    std::filesystem::remove(stale_temp);
 }
 
 TEST(ConfigTest, DefaultsToDebianWakeonlanSingleSendWireBehavior) {

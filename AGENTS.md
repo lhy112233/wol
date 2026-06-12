@@ -36,6 +36,11 @@ This repository builds `wol`, a fully static Linux x86_64 Wake-on-LAN CLI.
 - `--json` makes supported commands stable for automation.
 - `--check-config` validates config without sending packets.
 - `--print-config-path` prints the config path that would be used.
+- `--dry-run` is only valid for wake commands (`wol --dry-run [name]`); do not
+  combine it with `learn`, `--list`, `--check-config`, or other control commands.
+- For JSON mode, success responses go to stdout. Usage/runtime JSON errors go
+  to stderr and include `ok:false`, `error.kind`, `error.message`, and
+  `error.exit_code`.
 
 ## Where To Look
 
